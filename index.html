@@ -133,15 +133,13 @@ nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-current="page"]{color:var(--accent-ink)}
 
 .backup-nag{border-color:var(--accent);gap:10px}
-.start{display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding-top:12vh}
-.start h1{font-size:clamp(2.2rem,11.5vw,3.4rem);line-height:.95}
-.start p{margin:0;font-size:1rem}
-.daybtns{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:6px}
-.daybtn{display:flex;justify-content:space-between;align-items:center;width:100%;padding:18px 18px;border-radius:16px;border:1px solid var(--line);
-  background:var(--surface);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);text-align:left}
-.daybtn .nm{font-family:var(--display);font-weight:800;font-size:1.8rem;text-transform:uppercase;letter-spacing:.02em}
-.daybtn .sub{font-size:.8rem;color:var(--muted);text-align:right}
-.daybtn:active{background:var(--surface-2)}
+.start{min-height:calc(100dvh - 150px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center}
+.start h1{font-size:1.5rem;letter-spacing:.06em}
+.daybtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.daybtn{padding:10px 20px;border-radius:999px;border:1px solid var(--line);background:var(--surface);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+.daybtn .nm{font-family:var(--display);font-weight:800;font-size:1.15rem;text-transform:uppercase;letter-spacing:.04em}
+.daybtn:active{background:var(--fg);color:var(--bg)}
+.start .link{font-size:.85rem;color:var(--muted)}
 .work-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-top:6px}
 .work-head h1{font-size:2.4rem}
 .expills{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}
@@ -176,8 +174,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent-ink)}
   <!-- BUGÜN -->
   <section id="v-today" class="wrap" style="gap:18px">
     <div class="start" id="startView">
-      <h1>Antrenmana<br>başla</h1>
-      <p class="muted">Bugün hangi gün?</p>
+      <h1>Antrenmana başla</h1>
       <div class="daybtns" id="dayBtns"></div>
       <button class="link" id="freeBtn">Programsız devam et</button>
     </div>
@@ -347,10 +344,8 @@ function renderStart(){
   const box=$("dayBtns"); box.innerHTML="";
   for(const [pk,pr] of Object.entries(programs)){
     const ld=lastDoneDate(pk);
-    box.append(el("button",{class:"daybtn",onclick:()=>startWorkout(pk)}, el("span",{class:"nm",text:pr.name}),
-      el("span",{class:"sub",text: pr.ex.length+" hareket"+(ld?"\nson: "+dateLabel(ld):"")})));
+    box.append(el("button",{class:"daybtn",onclick:()=>startWorkout(pk),title:ld?"Son: "+dateLabel(ld):""}, el("span",{class:"nm",text:pr.name})));
   }
-  for(const sb of box.querySelectorAll(".sub")) sb.style.whiteSpace="pre-line";
 }
 function startWorkout(pk){
   session={date:todayKey(), prog:pk}; saveSession();
