@@ -428,10 +428,8 @@ function addSet(){
   const k=$("dateIn").value||todayKey();
   if(!days[k]) days[k]={date:k,sets:[]};
   const s={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), ex:selEx, kg, reps, t:Date.now()};
-  const prevPR=prFor(selEx);
   days[k].sets.push(s); saveDay(k);
   renderDay(); renderHint(); renderPills();
-  if(prevPR && kg>prevPR.kg) toast("Yeni rekor: "+exById(selEx).name+" "+fmt(kg)+" kg", "pr");
 }
 let lastRemoved=null;
 function removeSet(k,id){
@@ -496,9 +494,10 @@ function renderDetail(){
       const ss=el("div",{class:"sets"}); for(const s of hist.filter(x=>x.date===d)) ss.append(el("span",{class:"set",style:"padding-right:12px"},fmt(s.kg)+" kg × "+s.reps)); row.append(ss); hl.append(row); }
     hp.append(hl); box.append(hp);
   }
-  const custom=!DEFAULT_EX.some(d=>d.id===e.id);
-  if(custom) box.append(el("button",{class:"btn ghost small dangerbtn",style:"align-self:flex-start",text:"Bu hareketi listeden kaldır",onclick:()=>{
-    exercises=exercises.filter(x=>x.id!==e.id); saveExercises(); fillExSelect(); closeDetail(); toast("Hareket kaldırıldı. Eski setleri silinmedi."); }}));
+  box.append(el("button",{class:"btn ghost small dangerbtn",style:"align-self:flex-start",text:"Bu hareketi listeden kaldır",onclick:()=>{
+    const i=exercises.findIndex(x=>x.id===e.id); const removed=exercises[i];
+    exercises.splice(i,1); saveExercises(); fillExSelect(); closeDetail(); renderPills();
+    toast("Hareket kaldırıldı", "", "Geri al", ()=>{ exercises.splice(i,0,removed); saveExercises(); fillExSelect(); renderExList(); renderPills(); }); }}));
 }
 function addExercise(){
   const name=$("newExName").value.trim(); if(!name){ toast("Hareketin adını yaz."); return; }
