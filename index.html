@@ -133,6 +133,26 @@ nav.tabs button svg{width:22px;height:22px}
 nav.tabs button[aria-current="page"]{color:var(--accent-ink)}
 
 .backup-nag{border-color:var(--accent);gap:10px}
+.start{display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding-top:12vh}
+.start h1{font-size:clamp(2.2rem,11.5vw,3.4rem);line-height:.95}
+.start p{margin:0;font-size:1rem}
+.daybtns{display:flex;flex-direction:column;gap:10px;width:100%;margin-top:6px}
+.daybtn{display:flex;justify-content:space-between;align-items:center;width:100%;padding:18px 18px;border-radius:16px;border:1px solid var(--line);
+  background:var(--surface);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);text-align:left}
+.daybtn .nm{font-family:var(--display);font-weight:800;font-size:1.8rem;text-transform:uppercase;letter-spacing:.02em}
+.daybtn .sub{font-size:.8rem;color:var(--muted);text-align:right}
+.daybtn:active{background:var(--surface-2)}
+.work-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-top:6px}
+.work-head h1{font-size:2.4rem}
+.expills{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:0 16px 2px;scrollbar-width:none}
+.expills::-webkit-scrollbar{display:none}
+.expill{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);max-width:170px;text-align:left}
+.expill .n{font-size:.68rem;font-weight:800;color:var(--muted);letter-spacing:.06em}
+.expill .t{font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:146px}
+.expill .c{font-size:.72rem;color:var(--muted)}
+.expill.done .c{color:var(--fg)}
+.expill[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.expill[aria-pressed="true"] .n,.expill[aria-pressed="true"] .c{color:rgba(0,0,0,.55)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:30;background:rgba(243,241,238,.9);color:#0c0c0d;-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);
   border-radius:12px;padding:11px 14px;font-weight:700;display:flex;gap:14px;align-items:center;max-width:calc(100% - 32px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .toast.pr{background:var(--accent);color:var(--on-accent)}
@@ -155,8 +175,21 @@ nav.tabs button[aria-current="page"]{color:var(--accent-ink)}
 
   <!-- BUGÜN -->
   <section id="v-today" class="wrap" style="gap:18px">
+    <div class="start" id="startView">
+      <h1>Antrenmana<br>başla</h1>
+      <p class="muted">Bugün hangi gün?</p>
+      <div class="daybtns" id="dayBtns"></div>
+      <button class="link" id="freeBtn">Programsız devam et</button>
+    </div>
+
+    <div class="wrap" id="workView" hidden style="gap:18px">
+    <div class="work-head">
+      <h1 id="progTitle">Push</h1>
+      <button class="link" id="changeDay">Günü değiştir</button>
+    </div>
     <div class="panel">
-      <div class="field">
+      <div class="expills" id="exPills"></div>
+      <div class="field" id="exSelWrap">
         <label class="label" for="exSel">Hareket</label>
         <select id="exSel"></select>
       </div>
@@ -182,6 +215,7 @@ nav.tabs button[aria-current="page"]{color:var(--accent-ink)}
       </div>
       <input type="date" id="dateIn" aria-label="Kayıt tarihi" hidden>
       <div id="dayList"></div>
+    </div>
     </div>
   </section>
 
@@ -296,6 +330,57 @@ function plateHTML(kg){
   return wrap;
 }
 
+// ---------- PROGRAM ----------
+const PROG_KEY="spor-programs", SESS_KEY="spor-session";
+const DEFAULT_PROGRAMS={
+  push:{name:"Push", ex:["bench","incline","ohp","lateral","fly","pushdown"]},
+  pull:{name:"Pull", ex:["lat","row","cablerow","curl","hammer"]},
+  legs:{name:"Legs", ex:["squat","legpress","rdl","legcurl","legext"]}
+};
+let programs=DEFAULT_PROGRAMS, session=null; // session: {date, prog}
+try{ const o=JSON.parse(localStorage.getItem(PROG_KEY)||"null"); if(o) programs=o; }catch(e){}
+try{ session=JSON.parse(localStorage.getItem(SESS_KEY)||"null"); }catch(e){}
+function saveSession(){ try{ localStorage.setItem(SESS_KEY, JSON.stringify(session)); }catch(e){} }
+function progExercises(){ return session&&session.prog&&programs[session.prog] ? programs[session.prog].ex.filter(id=>exercises.some(e=>e.id===id)) : []; }
+function lastDoneDate(pk){ const ids=new Set(programs[pk].ex); let last=null; for(const k of sortedDates()) if(days[k].sets.some(s=>ids.has(s.ex))) last=k; return last; }
+function renderStart(){
+  const box=$("dayBtns"); box.innerHTML="";
+  for(const [pk,pr] of Object.entries(programs)){
+    const ld=lastDoneDate(pk);
+    box.append(el("button",{class:"daybtn",onclick:()=>startWorkout(pk)}, el("span",{class:"nm",text:pr.name}),
+      el("span",{class:"sub",text: pr.ex.length+" hareket"+(ld?"\nson: "+dateLabel(ld):"")})));
+  }
+  for(const sb of box.querySelectorAll(".sub")) sb.style.whiteSpace="pre-line";
+}
+function startWorkout(pk){
+  session={date:todayKey(), prog:pk}; saveSession();
+  const list=progExercises(); const todaySets=(days[todayKey()]||{sets:[]}).sets;
+  selEx = list.find(id=>!todaySets.some(s=>s.ex===id)) || list[0] || selEx;
+  showWork(); prefill();
+}
+function showWork(){
+  const active = session && session.date===todayKey();
+  $("startView").hidden=active; $("workView").hidden=!active;
+  if(!active){ renderStart(); return; }
+  $("progTitle").textContent = session.prog&&programs[session.prog] ? programs[session.prog].name : "Antrenman";
+  renderPills(); fillExSelect(); renderDay(); renderHint();
+}
+let showOther=false;
+function renderPills(){
+  const list=progExercises(), box=$("exPills"); box.innerHTML="";
+  const inProg = list.length>0;
+  box.hidden=!inProg; $("exSelWrap").hidden = inProg && !showOther && list.includes(selEx);
+  if(!inProg) return;
+  const k=$("dateIn").value||todayKey(); const sets=(days[k]||{sets:[]}).sets;
+  list.forEach((id,i)=>{ const n=sets.filter(s=>s.ex===id).length;
+    const b=el("button",{class:"expill"+(n?" done":""),"aria-pressed":String(id===selEx),onclick:()=>{ selEx=id; showOther=false; fillExSelect(); prefill(); renderPills(); }},
+      el("span",{class:"n",text:String(i+1)}), el("span",{class:"t",text:exById(id).name}), el("span",{class:"c",text:n?n+" set":"—"}));
+    box.append(b); });
+  box.append(el("button",{class:"expill","aria-pressed":String(showOther||!list.includes(selEx)),onclick:()=>{ showOther=true; renderPills(); $("exSel").focus(); }},
+    el("span",{class:"n",text:"+"}), el("span",{class:"t",text:"Diğer"}), el("span",{class:"c",text:"listede yok"})));
+  const cur=box.querySelector('[aria-pressed="true"]'); if(cur) cur.scrollIntoView({block:"nearest",inline:"nearest"});
+}
+
 // ---------- TODAY ----------
 let selEx = null;
 function fillExSelect(){
@@ -349,7 +434,7 @@ function addSet(){
   const s={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), ex:selEx, kg, reps, t:Date.now()};
   const prevPR=prFor(selEx);
   days[k].sets.push(s); saveDay(k);
-  renderDay(); renderHint();
+  renderDay(); renderHint(); renderPills();
   if(prevPR && kg>prevPR.kg) toast("Yeni rekor: "+exById(selEx).name+" "+fmt(kg)+" kg", "pr");
 }
 let lastRemoved=null;
@@ -439,7 +524,7 @@ function renderHist(){
     const l=el("div",{class:"hist"});
     for(const ex of order){ const ss=sets.filter(s=>s.ex===ex); const top=ss.reduce((a,b)=>b.kg>a.kg?b:a);
       l.append(el("div",{style:"display:flex;justify-content:space-between;gap:10px"}, el("span",{text:exById(ex).name}), el("span",{class:"muted",style:"font-variant-numeric:tabular-nums;white-space:nowrap",text:ss.length+"× · en ağır "+fmt(top.kg)+"×"+top.reps}))); }
-    p.append(l, el("button",{class:"link",style:"align-self:flex-start",text:"Bu günü aç",onclick:()=>{ showTab("today"); $("dateIn").hidden=false; setDate(d, true); window.scrollTo(0,0); }}));
+    p.append(l, el("button",{class:"link",style:"align-self:flex-start",text:"Bu günü aç",onclick:()=>{ showTab("today"); if(!(session&&session.date===todayKey())) startWorkout(null); $("dateIn").hidden=false; setDate(d, true); window.scrollTo(0,0); }}));
     box.append(p); }
 }
 
@@ -456,10 +541,13 @@ function showTab(name){
   if(name==="ex"){ detailEx?renderDetail():renderExList(); } if(name==="hist") renderHist();
   try{ sessionStorage.setItem("dd-tab",name); }catch(e){}
 }
-function renderAll(){ fillExSelect(); renderDay(); renderHint(); if(!$("v-ex").hidden){ detailEx?renderDetail():renderExList(); } if(!$("v-hist").hidden) renderHist(); }
+function renderAll(){ fillExSelect(); renderDay(); renderHint(); renderPills(); if(!$("v-ex").hidden){ detailEx?renderDetail():renderExList(); } if(!$("v-hist").hidden) renderHist(); }
 
 for(const b of document.querySelectorAll("nav.tabs button")) b.addEventListener("click",()=>{ if(b.dataset.tab==="ex"&&detailEx) closeDetail(); showTab(b.dataset.tab); window.scrollTo(0,0); });
-$("exSel").addEventListener("change",e=>{ selEx=e.target.value; prefill(); });
+$("exSel").addEventListener("change",e=>{ selEx=e.target.value; prefill(); renderPills(); });
+$("freeBtn").onclick=()=>startWorkout(null);
+$("changeDay").onclick=()=>{ session=null; saveSession(); showOther=false; showWork(); window.scrollTo(0,0); };
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && session && session.date!==todayKey()){ session=null; saveSession(); showWork(); } });
 let manualDate=false;
 function setDate(k, manual){ $("dateIn").value=k; manualDate=manual && k!==todayKey(); $("dateToday").hidden=!manualDate; $("dateToggle").hidden=manualDate || !$("dateIn").hidden; renderDay(); renderHint(); }
 $("dateIn").addEventListener("change",()=>{ setDate($("dateIn").value||todayKey(), true); if(!manualDate) $("dateIn").hidden=true; $("dateToggle").hidden=manualDate||!$("dateIn").hidden; });
@@ -499,7 +587,7 @@ $("addSet").onclick=addSet; $("newExBtn").onclick=addExercise;
 // ---------- boot ----------
 lsRead();
 $("dateIn").value=todayKey();
-fillExSelect(); prefill(); renderDay();
+fillExSelect(); prefill(); showWork();
 try{ const t=sessionStorage.getItem("dd-tab"); if(t) showTab(t); }catch(e){}
 setSync("on","Bu telefonda kayıtlı");
 checkBackupNag();
