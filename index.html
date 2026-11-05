@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Demir Defteri</title>
+<title>Spor</title>
 <meta name="theme-color" content="#09090a">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Demir Defteri">
+<meta name="apple-mobile-web-app-title" content="Spor">
 <style>html,body{margin:0}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -475,7 +475,7 @@ const BK_KEY="demir-defteri-backup", DAY_MS=864e5;
 function bkRead(){ try{ return JSON.parse(localStorage.getItem(BK_KEY)||"{}"); }catch(e){ return {}; } }
 function bkWrite(o){ try{ localStorage.setItem(BK_KEY, JSON.stringify(o)); }catch(e){} }
 function downloadBackup(){ const blob=new Blob([JSON.stringify({app:"demir-defteri",v:1,exercises,days},null,1)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="demir-defteri-yedek-"+todayKey()+".json"; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="spor-yedek-"+todayKey()+".json"; document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   bkWrite({...bkRead(), last:Date.now(), snooze:0}); $("backupNag").hidden=true; toast("Yedek İndirilenler klasörüne kaydedildi"); }
 function checkBackupNag(){
   const ts=[]; for(const k in days) for(const s of days[k].sets) ts.push(s.t);
@@ -493,7 +493,7 @@ $("impIn").onchange=async e=>{ const f=e.target.files[0]; e.target.value=""; if(
     for(const ex of (o.exercises||[])) if(!exercises.some(x=>x.id===ex.id)) exercises.push(ex);
     for(const [k,d] of Object.entries(o.days||{})){ if(!days[k]) days[k]={date:k,sets:[]}; for(const st of d.sets||[]) if(!days[k].sets.some(x=>x.id===st.id)){ days[k].sets.push(st); added++; } days[k].sets.sort((a,b)=>a.t-b.t); }
     lsWrite(); renderAll(); renderHist(); toast(added+" set geri yüklendi");
-  }catch(err){ toast("Bu dosya bir Demir Defteri yedeği değil."); } };
+  }catch(err){ toast("Bu dosya bu uygulamanın yedeği değil."); } };
 $("addSet").onclick=addSet; $("newExBtn").onclick=addExercise;
 
 // ---------- boot ----------
