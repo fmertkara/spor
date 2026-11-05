@@ -542,6 +542,15 @@ function renderAll(){ fillExSelect(); renderDay(); renderHint(); renderPills(); 
 for(const b of document.querySelectorAll("nav.tabs button")) b.addEventListener("click",()=>{ if(b.dataset.tab==="ex"&&detailEx) closeDetail(); showTab(b.dataset.tab); window.scrollTo(0,0); });
 $("exSel").addEventListener("change",e=>{ selEx=e.target.value; prefill(); renderPills(); });
 $("freeBtn").onclick=()=>startWorkout(null);
+// bilgisayarda: fare tekerleği ve sürükleme ile yatay kaydırma
+(()=>{ const box=$("exPills");
+  box.addEventListener("wheel",e=>{ if(Math.abs(e.deltaY)>Math.abs(e.deltaX) && box.scrollWidth>box.clientWidth){ box.scrollLeft+=e.deltaY; e.preventDefault(); } },{passive:false});
+  let down=null, moved=false;
+  box.addEventListener("pointerdown",e=>{ if(e.pointerType!=="mouse") return; down={x:e.clientX,l:box.scrollLeft}; moved=false; });
+  window.addEventListener("pointermove",e=>{ if(!down) return; const dx=e.clientX-down.x; if(Math.abs(dx)>4){ moved=true; box.scrollLeft=down.l-dx; } });
+  window.addEventListener("pointerup",()=>{ down=null; });
+  box.addEventListener("click",e=>{ if(moved){ e.stopPropagation(); e.preventDefault(); moved=false; } },true);
+})();
 $("changeDay").onclick=()=>{ session=null; saveSession(); showOther=false; showWork(); window.scrollTo(0,0); };
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden && session && session.date!==todayKey()){ session=null; saveSession(); showWork(); } });
 let manualDate=false;
